@@ -1,7 +1,7 @@
 import argparse
 import colorama
 
-from subprocess import Popen, CalledProcessError, PIPE, DEVNULL
+from subprocess import Popen, PIPE
 
 from awsume.awsumepy import hookimpl, safe_print
 from awsume.awsumepy.lib import profile
@@ -65,10 +65,21 @@ def get_otp(title):
         return None
 
 
+def canonicalize(config, profiles, name):
+    target_name = profile.get_profile_name(config, profiles, name, log=False)
+    if profiles.get(target_name) != None:
+        return target_name
+    else:
+        return None
+
+
 @hookimpl
 def pre_get_credentials(config: dict, arguments: argparse.Namespace, profiles: dict):
-    mfa_serial = get_mfa_serial(profiles, arguments.target_profile_name)
-    if mfa_serial and not arguments.mfa_token:
-        item = find_item(config, mfa_serial)
-        if item:
-            arguments.mfa_token = get_otp(item)
+    target_profile_name = canonicalize(
+        config, profiles, arguments.target_profile_name)
+    if target_profile_name != None:
+        mfa_serial = get_mfa_serial(profiles, target_profile_name)
+        if mfa_serial and not arguments.mfa_token:
+            item = find_item(config, mfa_serial)
+            if item:
+                arguments.mfa_token = get_otp(item)
