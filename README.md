@@ -6,6 +6,10 @@ This is a plugin that automates the entry of MFA tokens using 1Password.
 It replaces AWSume's `MFA Token:` prompt with a biometric unlock and delegates to 1Password for policies on how often unlock is required.
 In other words: it saves you from ever having to type an MFA token, ever again!
 
+## Support
+
+If you experience any problems, please [file a bug report](https://github.com/xeger/awsume-1password-plugin/issues/new?assignees=xeger&template=bug_report.md).
+
 ## Installation
 
 ### Install This Plugin
