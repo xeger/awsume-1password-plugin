@@ -9,7 +9,7 @@ setup(
         ]
     },
     author='Tony Spataro',
-    author_email='python@tracker.xeger.net',
+    author_email='pypi@tracker.xeger.net',
     url='https://github.com/xeger/awsume-1password-plugin',
     py_modules=['1password'],
 )
