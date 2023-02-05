@@ -68,7 +68,7 @@ def get_otp(title):
 @hookimpl
 def pre_get_credentials(config: dict, arguments: argparse.Namespace, profiles: dict):
     mfa_serial = get_mfa_serial(profiles, arguments.target_profile_name)
-    if mfa_serial:
+    if mfa_serial and not arguments.mfa_token:
         item = find_item(config, mfa_serial)
         if item:
             arguments.mfa_token = get_otp(item)
