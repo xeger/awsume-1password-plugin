@@ -1,11 +1,15 @@
 import argparse
-import re
+import colorama
 
-from subprocess import run, CalledProcessError, PIPE, DEVNULL
+from subprocess import Popen, CalledProcessError, PIPE, DEVNULL
 
 from awsume.awsumepy import hookimpl, safe_print
 from awsume.awsumepy.lib import profile
 from awsume.awsumepy.lib.logger import logger
+
+
+# we print only N lines of output to minimize ykman stack trace spam
+MAX_OUTPUT_LINES = 2
 
 
 def find_item(config, mfa_serial):
@@ -30,20 +34,32 @@ def get_mfa_serial(profiles, target_name):
     return mfa_serial
 
 
-def describe_failure(stderr):
-    # [ERROR] 2023/02/04 16:29:52 => 28 characters
-    return stderr.decode().strip('\n')[28:]
+def beautify(stderr):
+    msg = stderr.decode().strip('\n')
+    if stderr.startsWith('[ERROR]'):
+        return msg[28:]  # len('[ERROR] 2023/02/04 16:29:52')
+    else:
+        return msg
 
 
 def get_otp(title):
     try:
-        op = run(['op', 'item', 'get', '--otp', title],
-                 check=True, stdout=PIPE, stderr=PIPE)
-        return op.stdout.decode().strip('\n')
-    except CalledProcessError as e:
-        logger.error('Failed: `op` command -> %s' %
-                     (describe_failure(e.stderr)))
-        return None
+        op = Popen(['op', 'item', 'get', '--otp', title],
+                   stdout=PIPE, stderr=PIPE)
+        linecount = 0
+        while True:
+            msg = op.stderr.readline().decode()
+            if msg == '' and op.poll() is not None:
+                break
+            elif msg != '':
+                if linecount < MAX_OUTPUT_LINES:
+                    safe_print(beautify(msg), colorama.Fore.CYAN, end='')
+                    linecount += 1
+                else:
+                    logger.debug(msg.strip('\n'))
+        if op.returncode != 0:
+            return None
+        return op.stdout.readline().decode().strip('\n')
     except FileNotFoundError:
         logger.error('Failed: missing `op` command')
         return None
