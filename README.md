@@ -31,22 +31,36 @@ pipx inject awsume awsume-1password-plugin
 
 ### Configure AWSume
 
-This plugin needs to know which 1Password vault item to use for each MFA token.
-You can specify this information in a new subsection of `~/.awsume/config.yaml`, that maps MFA token ARNs to the correspodning 1Password item that can generate MFA codes.
-
-An example:
+This plugin needs to know which 1Password vault item to use for each MFA token. You can specify this information in your AWSume configuration file.
 
 ```yaml
+# ~/.awsume/config.yaml
+
+colors: true
+1password: AWS (12345, tony)
+```
+
+In this example, I have only one MFA token shared among all my accounts (which belong to the same organization).
+
+I have a corresponding 1Password vault item that looks like this:
+
+
+![Example 1Password Item](docs/screenshots/1p-item.png "Example 1Password Item")
+
+
+### Multiple MFA Tokens
+
+```yaml
+# ~/.awsume/config.yaml
+
 colors: true
 fuzzy-match: false
 1password:
   "arn:aws:iam::12345:mfa/tony": "AWS (12345, tony)"
+  "arn:aws:iam::12345:mfa/tony": "AWS (67890, xeger)"
 ```
 
-In this example, when I assume roles via my AWS account 12345, I use an MFA token associated with the IAM user `tony` that I have configured in the [AWS Console](https://us-east-1.console.aws.amazon.com/iamv2/home).
-I have a corresponding 1Password named that looks like this:
-
-![Example 1Password Item](docs/screenshots/1p-item.png "Example 1Password Item")
+I have two corresponding 1Password vault items for both accounts, with different names to distinguish them.
 
 ## Usage
 
