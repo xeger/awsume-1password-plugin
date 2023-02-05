@@ -28,10 +28,9 @@ pipx inject awsume awsume-1password-plugin
 ### Configure AWSume
 
 This plugin needs to know which 1Password vault item to use for each MFA token.
-You can specify this information in a new subsection of `~/.awsume/config.yaml` called `1password`. This subsection is a YAML map where
-each key is an AWS MFA token ARN, and the corresponding value is the name of a 1Password item that stores the corresponding secret and can generate MFA tokens.
+You can specify this information in a new subsection of `~/.awsume/config.yaml`, that maps MFA token ARNs to the correspodning 1Password item that can generate MFA codes.
 
-An example configuration file:
+An example:
 
 ```yaml
 colors: true
@@ -41,11 +40,18 @@ fuzzy-match: false
 ```
 
 In this example, when I assume roles via my AWS account 12345, I use an MFA token associated with the IAM user `tony` that I have configured in the [AWS Console](https://us-east-1.console.aws.amazon.com/iamv2/home).
-I have a corresponding 1Password named "AWS (12345, tony)"
-that looks like this:
+I have a corresponding 1Password named that looks like this:
 
 ![Example 1Password Item](docs/screenshots/1p-item.png "Example 1Password Item")
 
 ## Usage
 
 This plugin works automatically in the background; just `awsume` roles as you normally would, and it will invoke the `op` command to obtain TOTP tokens whenever AWSume requires one.
+
+## Troubleshooting
+
+If you experience any trouble, invoke `awsume` with the `--debug` flag and look for log entries that contain `1password`.
+
+The specific command that this plugin invokes is `op item get --otp "Profile Name Here"`; make sure it succeeds when you invoke it manually.
+
+If you can't solve your problem, [create a GitHub issue](https://github.com/xeger/awsume-1password-plugin/issues/new) with diagnostic details and we'll try to help you.
