@@ -56,11 +56,11 @@ I have a corresponding 1Password vault item that looks like this:
 colors: true
 fuzzy-match: false
 1password:
-  "arn:aws:iam::12345:mfa/tony": "AWS (12345, tony)"
-  "arn:aws:iam::67890:mfa/tony": "AWS (67890, xeger)"
+  "arn:aws:iam::12345:mfa/tony": "AWS for Tony Inc."
+  "arn:aws:iam::67890:mfa/xeger": "AWS for Xeger Enterprises"
 ```
 
-I have two corresponding 1Password vault items for both accounts, with different names to distinguish them.
+In this example I have access to two unrelated accounts, so there are two MFA tokens and two 1Password vault items; the config subsection becomes a map of token serials to vault item names.
 
 ## Usage
 
