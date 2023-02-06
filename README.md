@@ -57,7 +57,7 @@ colors: true
 fuzzy-match: false
 1password:
   "arn:aws:iam::12345:mfa/tony": "AWS (12345, tony)"
-  "arn:aws:iam::12345:mfa/tony": "AWS (67890, xeger)"
+  "arn:aws:iam::67890:mfa/tony": "AWS (67890, xeger)"
 ```
 
 I have two corresponding 1Password vault items for both accounts, with different names to distinguish them.
