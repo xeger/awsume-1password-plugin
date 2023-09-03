@@ -9,6 +9,3 @@ twine = "*"
 
 [packages]
 awsume = "*"
-
-[requires]
-python_version = "3.7"
