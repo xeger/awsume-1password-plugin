@@ -6,7 +6,8 @@ import sys
 from subprocess import Popen, PIPE
 
 from awsume.awsumepy import hookimpl, safe_print
-from awsume.awsumepy.lib import profile
+from awsume.awsumepy.lib import profile as profile_lib
+from awsume.awsumepy.lib import cache as cache_lib
 from awsume.awsumepy.lib.logger import logger
 
 
@@ -34,7 +35,7 @@ def find_item(config, mfa_serial):
 
 # Find the MFA serial for a given AWS profile.
 def get_mfa_serial(profiles, target_name):
-    mfa_serial = profile.get_mfa_serial(
+    mfa_serial = profile_lib.get_mfa_serial(
         profiles, target_name)
     if not mfa_serial:
         logger.debug('No MFA required')
@@ -78,15 +79,6 @@ def get_otp(title):
         return None
 
 
-# Find canonical profile name (e.g. with fuzzy matching rules).
-def canonicalize(config, profiles, name):
-    target_name = profile.get_profile_name(config, profiles, name, log=False)
-    if profiles.get(target_name) != None:
-        return target_name
-    else:
-        return None
-
-
 # Print sad message to console with instructions for filing a bug report.
 # Log stack trace to stderr in lieu of safe_print.
 def handle_crash():
@@ -98,11 +90,18 @@ def handle_crash():
 @hookimpl
 def pre_get_credentials(config: dict, arguments: argparse.Namespace, profiles: dict):
     try:
-        target_profile_name = canonicalize(
-            config, profiles, arguments.target_profile_name)
+        target_profile_name = profile_lib.get_profile_name(config, profiles, arguments.target_profile_name)
         if target_profile_name != None:
-            mfa_serial = get_mfa_serial(profiles, target_profile_name)
-            if mfa_serial and not arguments.mfa_token:
+            role_chain = profile_lib.get_role_chain(config, arguments, profiles, target_profile_name)
+            first_profile_name = role_chain[0]
+            first_profile = profiles.get(first_profile_name)
+            source_credentials = profile_lib.profile_to_credentials(first_profile)
+            cache_file_name = 'aws-credentials-' + source_credentials.get('AccessKeyId')
+            cache_session = cache_lib.read_aws_cache(cache_file_name)
+            valid_cache_session = cache_session and cache_lib.valid_cache_session(cache_session)
+
+            mfa_serial = profile_lib.get_mfa_serial(profiles, first_profile_name)
+            if mfa_serial and not valid_cache_session and not arguments.mfa_token:
                 item = find_item(config, mfa_serial)
                 if item:
                     arguments.mfa_token = get_otp(item)
