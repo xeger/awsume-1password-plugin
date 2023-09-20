@@ -48,3 +48,19 @@ pip3 install .
 ```
 
 Now you can invoke `awsume` to test your changes.
+
+## Release Your Changes
+
+### Prepare the Release
+
+1. Edit `setup.py` and increment the version number appropriately, following the rules of [semver](https://semver.org/).
+2. Commit your changes; tag with `vX.Y.Z`
+3. Record the release on GitHub: `git push; git push --tags`
+
+### Publish to PyPI
+
+```sh
+make clean
+make build
+make publish
+```
