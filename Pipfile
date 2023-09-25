@@ -6,6 +6,7 @@ verify_ssl = true
 [dev-packages]
 pylint = "*"
 twine = "*"
+wheel = "*"
 
 [packages]
 awsume = "*"
