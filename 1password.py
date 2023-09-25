@@ -101,7 +101,7 @@ def pre_get_credentials(config: dict, arguments: argparse.Namespace, profiles: d
             valid_cache_session = cache_session and cache_lib.valid_cache_session(cache_session)
 
             mfa_serial = profile_lib.get_mfa_serial(profiles, first_profile_name)
-            if mfa_serial and not valid_cache_session and not arguments.mfa_token:
+            if mfa_serial and (not valid_cache_session or arguments.force_refresh) and not arguments.mfa_token:
                 item = find_item(config, mfa_serial)
                 if item:
                     arguments.mfa_token = get_otp(item)
