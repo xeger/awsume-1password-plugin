@@ -91,6 +91,9 @@ def handle_crash():
 def pre_get_credentials(config: dict, arguments: argparse.Namespace, profiles: dict):
     try:
         target_profile_name = profile_lib.get_profile_name(config, profiles, arguments.target_profile_name)
+        if not profiles.get(target_profile_name):
+            logger.debug('No profile %s found, skip plugin flow' % target_profile_name)
+            return None
         if target_profile_name != None:
             role_chain = profile_lib.get_role_chain(config, arguments, profiles, target_profile_name)
             first_profile_name = role_chain[0]
