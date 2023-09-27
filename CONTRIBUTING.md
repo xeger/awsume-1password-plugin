@@ -36,6 +36,7 @@ mfa_serial = arn:aws:iam::012345678901:mfa/user@example.com
 region = us-east-2
 role_arn = arn:aws:iam::987654321098:role/SomeTargetRole
 source_profile=alpha
+
 ```
 
 ## Test Your Changes
@@ -60,6 +61,10 @@ Now you can invoke `awsume` to test your changes.
 ### Publish to PyPI
 
 ```sh
+# Enter the venv to ensure that we will build the package correctly
+pipenv shell
+
+# Inside the venv, run these commands (see Makefile for details)
 make clean
 make build
 make publish
