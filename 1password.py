@@ -35,8 +35,7 @@ def find_item(config, mfa_serial):
 
 # Find the MFA serial for a given AWS profile.
 def get_mfa_serial(profiles, target_name):
-    mfa_serial = profile_lib.get_mfa_serial(
-        profiles, target_name)
+    mfa_serial = profile_lib.get_mfa_serial(profiles, target_name)
     if not mfa_serial:
         logger.debug('No MFA required')
     return mfa_serial
@@ -56,8 +55,7 @@ def beautify(msg):
 # Call 1Password to get an OTP for a given vault item.
 def get_otp(title):
     try:
-        op = Popen(['op', 'item', 'get', '--otp', title],
-                   stdout=PIPE, stderr=PIPE)
+        op = Popen(['op', 'item', 'get', '--otp', title], stdout=PIPE, stderr=PIPE)
         linecount = 0
         while True:
             msg = op.stderr.readline().decode()
@@ -66,8 +64,7 @@ def get_otp(title):
             elif msg != '' and linecount < MAX_OUTPUT_LINES:
                 msg = beautify(msg)
                 if msg:
-                    safe_print('1Password: ' + msg,
-                               colorama.Fore.CYAN)
+                    safe_print('1Password: ' + msg, colorama.Fore.CYAN)
                     linecount += 1
             else:
                 logger.debug(msg.strip('\n'))
@@ -82,34 +79,52 @@ def get_otp(title):
 # Print sad message to console with instructions for filing a bug report.
 # Log stack trace to stderr in lieu of safe_print.
 def handle_crash():
-    safe_print('Error invoking 1Password plugin; please file a bug report:\n  %s' %
-               ('https://github.com/xeger/awsume-1password-plugin/issues/new/choose'), colorama.Fore.RED)
+    safe_print(
+        'Error invoking 1Password plugin; please file a bug report:\n  %s'
+        % ('https://github.com/xeger/awsume-1password-plugin/issues/new/choose'),
+        colorama.Fore.RED,
+    )
     traceback.print_exc(file=sys.stderr)
 
 
 @hookimpl
 def pre_get_credentials(config: dict, arguments: argparse.Namespace, profiles: dict):
     try:
-        target_profile_name = profile_lib.get_profile_name(config, profiles, arguments.target_profile_name)
+        target_profile_name = profile_lib.get_profile_name(
+            config, profiles, arguments.target_profile_name
+        )
         if not profiles.get(target_profile_name):
             logger.debug('No profile %s found, skip plugin flow' % target_profile_name)
             return None
         if target_profile_name != None:
-            role_chain = profile_lib.get_role_chain(config, arguments, profiles, target_profile_name)
-            first_profile_name = role_chain[0]
+            if target_profile_name == "default":
+                first_profile_name = "default"
+            else:
+                role_chain = profile_lib.get_role_chain(
+                    config, arguments, profiles, target_profile_name
+                )
+                first_profile_name = role_chain[0]
             first_profile = profiles.get(first_profile_name)
             source_credentials = profile_lib.profile_to_credentials(first_profile)
             cache_file_name = 'aws-credentials-' + source_credentials.get('AccessKeyId')
             cache_session = cache_lib.read_aws_cache(cache_file_name)
-            valid_cache_session = cache_session and cache_lib.valid_cache_session(cache_session)
+            valid_cache_session = cache_session and cache_lib.valid_cache_session(
+                cache_session
+            )
 
             mfa_serial = profile_lib.get_mfa_serial(profiles, first_profile_name)
-            if mfa_serial and (not valid_cache_session or arguments.force_refresh) and not arguments.mfa_token:
+            if (
+                mfa_serial
+                and (not valid_cache_session or arguments.force_refresh)
+                and not arguments.mfa_token
+            ):
                 item = find_item(config, mfa_serial)
                 if item:
                     arguments.mfa_token = get_otp(item)
                     if arguments.mfa_token:
-                        safe_print('Obtained MFA token from 1Password item: %s' %
-                                   (item), colorama.Fore.CYAN)
+                        safe_print(
+                            'Obtained MFA token from 1Password item: %s' % (item),
+                            colorama.Fore.CYAN,
+                        )
     except Exception:
         handle_crash()
