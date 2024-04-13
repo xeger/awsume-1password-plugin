@@ -62,6 +62,7 @@ Now you can invoke `awsume` to test your changes.
 
 ```sh
 # Enter the venv to ensure that we will build the package correctly
+pipenv install --dev
 pipenv shell
 
 # Inside the venv, run these commands (see Makefile for details)
