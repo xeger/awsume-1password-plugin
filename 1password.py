@@ -107,7 +107,7 @@ def pre_get_credentials(config: dict, arguments: argparse.Namespace, profiles: d
             source_access_key_id = source_credentials.get('AccessKeyId')
             if source_access_key_id == None:
                 logger.debug(
-                    'No access key for profile %, skip plugin flow'
+                    'No access key for profile %s, skip plugin flow'
                     % target_profile_name
                 )
                 return None
