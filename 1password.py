@@ -103,12 +103,19 @@ def pre_get_credentials(config: dict, arguments: argparse.Namespace, profiles: d
                 )
                 first_profile_name = role_chain[0]
             first_profile = profiles.get(first_profile_name)
+            # Skip plugin flow if profile uses credential_process
+            if first_profile.get('credential_process'):
+                logger.debug(
+                    'Profile %s uses credential_process, skip plugin flow'
+                    % first_profile_name
+                )
+                return None
             source_credentials = profile_lib.profile_to_credentials(first_profile)
             source_access_key_id = source_credentials.get('AccessKeyId')
             if source_access_key_id == None:
                 logger.debug(
                     'No access key for profile %s, skip plugin flow'
-                    % target_profile_name
+                    % first_profile_name
                 )
                 return None
             cache_file_name = 'aws-credentials-' + source_access_key_id
