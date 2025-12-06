@@ -1,10 +1,12 @@
 import argparse
+import json
 import sys
 import traceback
 from subprocess import PIPE, Popen
 
 import colorama
 from awsume.awsumepy import hookimpl, safe_print
+from awsume.awsumepy.lib import aws as aws_lib
 from awsume.awsumepy.lib import cache as cache_lib
 from awsume.awsumepy.lib import profile as profile_lib
 from awsume.awsumepy.lib.logger import logger
@@ -85,6 +87,53 @@ def handle_crash():
     traceback.print_exc(file=sys.stderr)
 
 
+# Execute credential_process and return credentials dict
+def run_credential_process(credential_process_cmd):
+    try:
+        proc = Popen(credential_process_cmd, shell=True, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = proc.communicate()
+        if proc.returncode != 0:
+            logger.error('credential_process failed: %s' % stderr.decode())
+            return None
+        creds = json.loads(stdout.decode())
+        return {
+            'AccessKeyId': creds.get('AccessKeyId'),
+            'SecretAccessKey': creds.get('SecretAccessKey'),
+        }
+    except Exception as e:
+        logger.error('Failed to run credential_process: %s' % str(e))
+        return None
+
+
+# Handle MFA flow for credential_process profiles. Returns session dict or None.
+def handle_credential_process_mfa(first_profile, mfa_serial, otp, force_refresh):
+    credential_process = first_profile.get('credential_process')
+    source_credentials = run_credential_process(credential_process)
+    if not source_credentials:
+        return None
+
+    cache_file_name = 'aws-credentials-' + source_credentials['AccessKeyId']
+    cache_session = cache_lib.read_aws_cache(cache_file_name)
+
+    if cache_session and cache_lib.valid_cache_session(cache_session) and not force_refresh:
+        logger.debug('Using cached MFA session for credential_process profile')
+        return cache_session
+
+    try:
+        region = first_profile.get('region', 'us-east-1')
+        return aws_lib.get_session_token(
+            source_credentials,
+            region=region,
+            mfa_serial=mfa_serial,
+            mfa_token=otp,
+            ignore_cache=force_refresh,
+        )
+    except Exception as e:
+        logger.error('Failed to get session token: %s' % str(e))
+        safe_print('Failed to get MFA session: %s' % str(e), colorama.Fore.RED)
+        return None
+
+
 @hookimpl
 def pre_get_credentials(config: dict, arguments: argparse.Namespace, profiles: dict):
     try:
@@ -103,12 +152,46 @@ def pre_get_credentials(config: dict, arguments: argparse.Namespace, profiles: d
                 )
                 first_profile_name = role_chain[0]
             first_profile = profiles.get(first_profile_name)
+            # Handle credential_process profiles with MFA by getting session token
+            if first_profile.get('credential_process'):
+                logger.debug(
+                    'Profile %s uses credential_process, handling MFA flow'
+                    % first_profile_name
+                )
+                mfa_serial = profile_lib.get_mfa_serial(profiles, first_profile_name)
+                if mfa_serial and not arguments.mfa_token:
+                    item = find_item(config, mfa_serial)
+                    if item:
+                        otp = get_otp(item)
+                        if otp:
+                            safe_print(
+                                'Obtained MFA token from 1Password item: %s' % item,
+                                colorama.Fore.CYAN,
+                            )
+                            session = handle_credential_process_mfa(
+                                first_profile, mfa_serial, otp, arguments.force_refresh
+                            )
+                            if session:
+                                safe_print(
+                                    'Obtained MFA session credentials',
+                                    colorama.Fore.CYAN,
+                                )
+                                # Replace credential_process with session credentials
+                                del profiles[first_profile_name]['credential_process']
+                                # Remove mfa_serial since we've already handled MFA
+                                if 'mfa_serial' in profiles[first_profile_name]:
+                                    del profiles[first_profile_name]['mfa_serial']
+                                profiles[first_profile_name]['aws_access_key_id'] = session.get('AccessKeyId')
+                                profiles[first_profile_name]['aws_secret_access_key'] = session.get('SecretAccessKey')
+                                if session.get('SessionToken'):
+                                    profiles[first_profile_name]['aws_session_token'] = session.get('SessionToken')
+                return None
             source_credentials = profile_lib.profile_to_credentials(first_profile)
             source_access_key_id = source_credentials.get('AccessKeyId')
             if source_access_key_id == None:
                 logger.debug(
                     'No access key for profile %s, skip plugin flow'
-                    % target_profile_name
+                    % first_profile_name
                 )
                 return None
             cache_file_name = 'aws-credentials-' + source_access_key_id
