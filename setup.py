@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='awsume-1password-plugin',
-    version='1.2.4',
+    version='1.2.5',
     description='Automates awsume MFA entry via 1Password CLI.',
     entry_points={'awsume': ['1password = 1password']},
     author='Tony Spataro',
